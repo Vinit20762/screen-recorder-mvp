@@ -12,8 +12,12 @@ export default function Navbar() {
                 <Link href="/recording">
                     <button className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 hover:cursor-pointer">Recorder</button>
                 </Link>
-                <button className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 hover:cursor-pointer">Trim Video</button>
-                <button className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 hover:cursor-pointer mr-6">Videos</button>
+                <Link href="/trim">
+                    <button className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 hover:cursor-pointer">Trim Video</button>
+                </Link>
+                <Link href="/videos">
+                    <button className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 hover:cursor-pointer mr-6">Videos</button>
+                </Link>
                 <ModeToggle />
             </div>
         </nav>

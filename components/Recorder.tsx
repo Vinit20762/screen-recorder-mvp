@@ -1,110 +1,131 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { saveVideo, getVideo } from "@/lib/videoStore";
+
+const VIDEO_KEY = "latest-recording";
 
 export default function Recorder() {
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const recordedChunksRef = useRef<Blob[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const router = useRouter();
 
-    const [recording, setRecording] = useState(false);
-    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
-    const startRecording = async () => {
-        try {
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
-            });
+  /* 🔁 Restore persisted video on page load */
+  useEffect(() => {
+    const restoreVideo = async () => {
+      const blob = await getVideo(VIDEO_KEY);
+      if (!blob) return;
 
-            const audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-            });
+      const url = URL.createObjectURL(blob);
+      setVideoUrl(url);
+    };
 
-            const combinedStream = new MediaStream([
-                ...screenStream.getVideoTracks(),
-                ...audioStream.getAudioTracks(),
-            ]);
+    restoreVideo();
+  }, []);
 
-            const mediaRecorder = new MediaRecorder(combinedStream, {
-                mimeType: "video/webm",
-            });
+  const startRecording = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
 
-            recordedChunksRef.current = [];
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    recordedChunksRef.current.push(event.data);
-                }
-            };
+      const combinedStream = new MediaStream([
+        ...screenStream.getVideoTracks(),
+        ...audioStream.getAudioTracks(),
+      ]);
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunksRef.current, {
-                    type: "video/webm",
-                });
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/webm",
+      });
 
-                const url = URL.createObjectURL(blob);
-                setVideoUrl(url);
+      recordedChunksRef.current = [];
 
-                combinedStream.getTracks().forEach((track) => track.stop());
-            };
-
-            mediaRecorder.start();
-            mediaRecorderRef.current = mediaRecorder;
-            setRecording(true);
-            setVideoUrl(null); // reset previous recording
-        } catch (error) {
-            console.error("Error starting recording:", error);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
         }
-    };
+      };
 
-    const stopRecording = () => {
-        mediaRecorderRef.current?.stop();
-        setRecording(false);
-    };
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: "video/webm",
+        });
 
-    return (
-        <div className="flex flex-col items-center gap-6">
-            {/* Center Black Preview Box */}
-            <div className="w-[900px] h-[500px] bg-black rounded-xl border border-neutral-800 flex items-center justify-center">
-                {!videoUrl && (
-                    <span className="text-gray-500 text-sm">
-                        Screen preview will appear here
-                    </span>
-                )}
+        /* ✅ Persist video in browser */
+        await saveVideo(VIDEO_KEY, blob);
 
-                {videoUrl && (
-                    <video
-                        src={videoUrl}
-                        controls
-                        className="w-full h-full object-contain rounded-xl"
-                    />
-                )}
-            </div>
+        const url = URL.createObjectURL(blob);
+        setVideoUrl(url);
 
-            {/* Controls */}
-            <div className="flex gap-4">
-                <Button
-                    variant="outline"
-                    onClick={startRecording}
-                    disabled={recording}
-                >
-                    Start
-                </Button>
+        combinedStream.getTracks().forEach((track) => track.stop());
+      };
 
-                <Button
-                    variant="outline"
-                    onClick={stopRecording}
-                    disabled={!recording}
-                >
-                    Stop
-                </Button>
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setRecording(true);
+      setVideoUrl(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-                {videoUrl && (
-                    <a href={videoUrl} download="recording.webm">
-                        <Button>Download</Button>
-                    </a>
-                )}
-            </div>
-        </div>
-    );
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      {/* Preview box */}
+      <div className="w-[900px] h-[500px] bg-black rounded-xl border flex items-center justify-center">
+        {!videoUrl && (
+          <span className="text-gray-500">
+            Screen preview will appear here
+          </span>
+        )}
+        {videoUrl && (
+          <video
+            src={videoUrl}
+            controls
+            className="w-full h-full object-contain"
+          />
+        )}
+      </div>
+
+      {/* Controls */}
+      <div className="flex gap-4">
+        <Button onClick={startRecording} disabled={recording}>
+          Start
+        </Button>
+
+        <Button onClick={stopRecording} disabled={!recording}>
+          Stop
+        </Button>
+
+        {videoUrl && (
+          <>
+            <a href={videoUrl} download="recording.webm">
+              <Button variant="outline">Download</Button>
+            </a>
+
+            <Button
+              onClick={() => router.push("/trim")}
+              variant="secondary"
+            >
+              Trim Video
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
