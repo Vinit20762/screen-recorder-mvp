@@ -424,27 +424,6 @@ Video Page → POST /api/analytics → analyticsStore.ts → analytics.json
 - [ ] Video annotations/comments
 - [ ] Email notifications
 
-### **8. Scalability**
-- [ ] Queue system for uploads (BullMQ/SQS)
-- [ ] Horizontal scaling (load balancer)
-- [ ] Caching layer (Redis)
-- [ ] Separate storage for large files
-- [ ] Microservices architecture
-
-### **9. Compliance & Legal**
-- [ ] GDPR compliance (data deletion)
-- [ ] Terms of service
-- [ ] Privacy policy
-- [ ] Content moderation
-- [ ] Copyright detection
-
-### **10. DevOps**
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Automated testing (Jest, Playwright)
-- [ ] Infrastructure as Code (Terraform)
-- [ ] Monitoring (Datadog/New Relic)
-- [ ] Staging environment
-
 ---
 
 ## 📊 Assignment Checklist
