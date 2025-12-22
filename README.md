@@ -159,20 +159,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 2. Create a new bucket (e.g., `marvedge-recorder-mvp`)
 3. Enable public access if needed for direct video playback
 
-#### Set CORS Policy
-Add this CORS configuration to your S3 bucket:
-
-```json
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
-    "AllowedOrigins": ["*"],
-    "ExposeHeaders": ["ETag"]
-  }
-]
-```
-
 #### Create IAM User
 1. Create an IAM user with programmatic access
 2. Attach policy: `AmazonS3FullAccess` (or create custom policy)
