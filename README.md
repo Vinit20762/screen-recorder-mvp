@@ -58,9 +58,9 @@
 | **Framework** | Next.js 16 (App Router) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS v4 |
-| **Video Processing** | ffmpeg.wasm (client-side) |
+| **Video Recording and Processing** | MediaRecorder API and ffmpeg.wasm (client-side) |
 | **Storage** | AWS S3 + IndexedDB |
-| **UI Components** | Radix UI |
+| **UI Components** | ShadCN UI and Radix UI |
 | **Theme** | next-themes |
 | **Icons** | Lucide React |
 
