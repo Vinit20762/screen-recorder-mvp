@@ -20,34 +20,34 @@
 ## ✨ Features
 
 ### 1. **In-Browser Screen Recording**
-- ✅ Records **screen + microphone audio** using MediaRecorder API
-- ✅ Start/Stop controls with real-time preview
-- ✅ Saves output as `.webm` format
-- ✅ **Persistent storage** using IndexedDB (survives page refreshes)
+- Records **screen + microphone audio** using MediaRecorder API
+- Start/Stop controls with real-time preview
+- Saves output as `.webm` format
+- **Persistent storage** using IndexedDB (survives page refreshes)
 
 ### 2. **Video Trimming**
-- ✅ Client-side trimming with **ffmpeg.wasm**
-- ✅ Set custom start and end times
-- ✅ Preview trimmed output before saving
-- ✅ Download trimmed video locally
+- Client-side trimming with **ffmpeg.wasm**
+- Set custom start and end times
+- Preview trimmed output before saving
+- Download trimmed video locally
 
 ### 3. **Upload & Share**
-- ✅ Upload videos to **AWS S3**
-- ✅ Generate **pre-signed URLs** (7-day validity)
-- ✅ Public shareable video page
-- ✅ Copy-to-clipboard functionality
+- Upload videos to **AWS S3**
+- Generate **pre-signed URLs** (7-day validity)
+- Public shareable video page
+- Copy-to-clipboard functionality
 
 ### 4. **Analytics Tracking**
-- ✅ **View count** tracking
-- ✅ **Watch completion percentage** (average across sessions)
-- ✅ **File-based persistence** (`analytics.json`)
-- ✅ Real-time analytics display on video pages
+- **View count** tracking
+- **Watch completion percentage** (average across sessions)
+- **File-based persistence** (`analytics.json`)
+- Real-time analytics display on video pages
 
 ### 5. **Additional Features**
-- ✅ Dark/Light mode toggle
-- ✅ Responsive design
-- ✅ Video library page with metadata
-- ✅ Error handling and loading states
+- Dark/Light mode toggle
+- Responsive design
+- Video library page with metadata
+- Error handling and loading states
 
 ---
 
