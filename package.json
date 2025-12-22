@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.956.0",
+    "@aws-sdk/s3-request-presigner": "^3.956.0",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
