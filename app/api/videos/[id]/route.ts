@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3, BUCKET_NAME } from "@/lib/s3";
+import { getS3Client, BUCKET_NAME } from "@/lib/s3";
 
 export async function GET(
   req: Request,
@@ -19,6 +19,9 @@ export async function GET(
     const resolvedParams = params instanceof Promise ? await params : params;
     const id = resolvedParams.id;
     const key = `videos/${id}.webm`;
+
+    // Get S3 client (lazy initialization)
+    const s3 = getS3Client();
 
     // Check if the object exists first
     try {
@@ -50,20 +53,20 @@ export async function GET(
     });
 
     // Get the base URL for the video page (for shareable links)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
-    
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+      'http://localhost:3000';
+
     const videoPageUrl = `${baseUrl}/videos/${id}`;
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       url: signedUrl, // Pre-signed S3 URL for direct video access
       shareUrl: videoPageUrl // Shareable link to video page
     });
   } catch (error: any) {
     console.error("Error generating video URL:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to generate video URL",
         details: error.message || "Unknown error"
       },

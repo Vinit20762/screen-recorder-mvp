@@ -16,5 +16,35 @@
     "totalWatchTime": 0,
     "duration": 0,
     "watchSessions": []
+  },
+  "a7c18b22-bb3e-4ca8-b1c5-4adebeb1ffc7": {
+    "views": 12,
+    "totalWatchTime": 44.708316999999994,
+    "duration": 8.032,
+    "watchSessions": [
+      63,
+      94,
+      100,
+      100,
+      100,
+      100
+    ]
+  },
+  "22cbd522-9210-4ff0-b11a-ba92b490dd9d": {
+    "views": 8,
+    "totalWatchTime": 7.73354,
+    "duration": 3.86677,
+    "watchSessions": [
+      100,
+      100
+    ]
+  },
+  "10be49d5-69aa-4d0a-a46d-7855cd7cfb64": {
+    "views": 1,
+    "totalWatchTime": 4.409448,
+    "duration": 4.776667,
+    "watchSessions": [
+      92
+    ]
   }
 }

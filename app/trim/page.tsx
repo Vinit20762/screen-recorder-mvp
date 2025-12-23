@@ -21,7 +21,7 @@ export default function TrimPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [ffmpegLoaded, setFfmpegLoaded] = useState(false);
-    
+
     // Share/Upload states
     const [uploading, setUploading] = useState(false);
     const [shareableUrl, setShareableUrl] = useState<string | null>(null);
@@ -156,7 +156,9 @@ export default function TrimPage() {
             }
 
             const data = await res.json();
-            setShareableUrl(data.url);
+            // Create shareable application URL instead of S3 URL
+            const appUrl = `${window.location.origin}/videos/${data.id}`;
+            setShareableUrl(appUrl);
         } catch (err) {
             setUploadError(
                 err instanceof Error ? err.message : "Failed to upload video"
@@ -264,7 +266,7 @@ export default function TrimPage() {
 
                     {!shareableUrl && !uploading && !uploadError && (
                         <Button onClick={uploadToS3} className="min-w-32">
-                           Save and Share
+                            Save and Share
                         </Button>
                     )}
 
@@ -313,7 +315,7 @@ export default function TrimPage() {
                                     type="text"
                                     value={shareableUrl}
                                     readOnly
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white text-sm"
+                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100"
                                 />
                                 <Button
                                     onClick={copyToClipboard}

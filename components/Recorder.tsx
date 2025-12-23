@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { saveVideo, getVideo } from "@/lib/videoStore";
+import { saveVideo, getVideo, deleteVideo } from "@/lib/videoStore";
 
 const VIDEO_KEY = "latest-recording";
 
@@ -14,14 +14,14 @@ export default function Recorder() {
 
   const [recording, setRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  
+
   // Share/Upload states
   const [uploading, setUploading] = useState(false);
   const [shareableUrl, setShareableUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  /* 🔁 Restore persisted video on page load */
+  // restore persisted video on page load 
   useEffect(() => {
     const restoreVideo = async () => {
       const blob = await getVideo(VIDEO_KEY);
@@ -66,7 +66,7 @@ export default function Recorder() {
           type: "video/webm",
         });
 
-        /* ✅ Persist video in browser */
+        /* Persist video in browser */
         await saveVideo(VIDEO_KEY, blob);
 
         const url = URL.createObjectURL(blob);
@@ -117,7 +117,18 @@ export default function Recorder() {
       }
 
       const data = await res.json();
-      setShareableUrl(data.url);
+      // Create shareable application URL instead of S3 URL
+      const appUrl = `${window.location.origin}/videos/${data.id}`;
+      setShareableUrl(appUrl);
+
+      // Cleaup- Delete video from IndexedDB after successful upload
+      console.log("Upload successful, cleaning up IndexedDB...");
+      try {
+        await deleteVideo(VIDEO_KEY);
+        console.log("IndexedDB cleanup successful - video removed from browsr storage");
+      } catch (cleanupError) {
+        console.error("Failed to cleanup IndexedDB:", cleanupError);
+      }
     } catch (err) {
       setUploadError(
         err instanceof Error ? err.message : "Failed to upload video"
@@ -195,7 +206,7 @@ export default function Recorder() {
           <div className="w-full flex flex-col gap-4 items-center">
             {!shareableUrl && !uploading && !uploadError && (
               <Button onClick={uploadToS3} className="min-w-32">
-               Save and Share
+                Save and Share
               </Button>
             )}
 
