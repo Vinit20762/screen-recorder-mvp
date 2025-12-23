@@ -13,6 +13,7 @@
 - [Setup Instructions](#-setup-instructions)
 - [Architecture Decisions](#-architecture-decisions)
 - [How It Works](#-how-it-works)
+- [Recent Improvements](#-recent-improvements)
 - [Production Improvements](#-production-improvements)
 
 ---
@@ -24,6 +25,7 @@
 - Start/Stop controls with real-time preview
 - Saves output as `.webm` format
 - **Persistent storage** using IndexedDB (survives page refreshes)
+- **Automatic cleanup** after successful upload to prevent storage quota issues
 
 ### 2. **Video Trimming**
 - Client-side trimming with **ffmpeg.wasm**
@@ -33,21 +35,25 @@
 
 ### 3. **Upload & Share**
 - Upload videos to **AWS S3**
-- Generate **pre-signed URLs** (7-day validity)
-- Public shareable video page
+- Generate **shareable application URLs** (`/videos/{id}`)
+- Public shareable video page with embedded player
 - Copy-to-clipboard functionality
+- Automatic IndexedDB cleanup after upload
 
 ### 4. **Analytics Tracking**
-- **View count** tracking
-- **Watch completion percentage** (average across sessions)
+- **View count** tracking (external links only)
+- **Watch completion percentage** tracking in real-time
+- **Average completion** calculated across all watch sessions
+- **Watch session count** display
 - **File-based persistence** (`analytics.json`)
 - Real-time analytics display on video pages
 
 ### 5. **Additional Features**
-- Dark/Light mode toggle
+- Dark/Light mode toggle with proper contrast
 - Responsive design
-- Video library page with metadata
-- Error handling and loading states
+- Video library page with metadata and analytics
+- Comprehensive error handling
+- Clean, production-ready code
 
 ---
 
@@ -95,7 +101,7 @@ screen-recorder-mvp/
 │   └── globals.css               # Global styles
 │
 ├── components/
-│   ├── Recorder.tsx              # Recording logic + upload
+│   ├── Recorder.tsx              # Recording logic + upload + cleanup
 │   ├── Navbar.tsx                # Navigation bar
 │   ├── theme-provider.tsx        # Theme context provider
 │   └── ui/
@@ -105,7 +111,7 @@ screen-recorder-mvp/
 │
 ├── lib/
 │   ├── videoStore.ts             # IndexedDB persistence layer
-│   ├── s3.ts                     # AWS S3 client configuration
+│   ├── s3.ts                     # AWS S3 client (lazy initialization)
 │   ├── analyticsStore.ts         # File-based analytics storage
 │   ├── videoMetadataStore.ts     # Video metadata management
 │   └── utils.ts                  # Utility functions
@@ -147,9 +153,6 @@ AWS_REGION=eu-north-1
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
 AWS_S3_BUCKET_NAME=your-bucket-name
-
-# Application URL (for shareable links)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### 4. Configure AWS S3 Bucket
@@ -157,7 +160,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 #### Create S3 Bucket
 1. Go to AWS S3 Console
 2. Create a new bucket (e.g., `marvedge-recorder-mvp`)
-3. Enable public access if needed for direct video playback
+3. Configure CORS for video playback:
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST"],
+    "AllowedOrigins": ["http://localhost:3000", "your-production-domain.com"],
+    "ExposeHeaders": []
+  }
+]
+```
 
 #### Create IAM User
 1. Create an IAM user with programmatic access
@@ -218,6 +232,13 @@ export async function saveVideo(key: string, blob: Blob) {
 }
 ```
 
+**Automatic Cleanup:**
+After successful upload, videos are automatically deleted from IndexedDB to prevent storage quota issues:
+```typescript
+await deleteVideo(VIDEO_KEY);
+console.log("IndexedDB cleanup successful - video removed from browser storage");
+```
+
 ---
 
 ### **3. Client-Side Trimming (ffmpeg.wasm)**
@@ -275,19 +296,43 @@ Record → Download → Trim → Upload → Share
 
 ---
 
-### **6. Pre-Signed URLs**
+### **6. Shareable Application URLs**
 
-**Why pre-signed URLs?**
-- ✅ Secure access without making bucket public
-- ✅ Time-limited (7 days for share links, 1 hour for playback)
-- ✅ No authentication required for viewers
+**Why application URLs instead of S3 URLs?**
+- ✅ Clean, user-friendly URLs (`/videos/{id}`)
+- ✅ Consistent with application routing
+- ✅ Analytics tracking on video views
+- ✅ Better user experience
 
 **Implementation:**
 ```typescript
-const signedUrl = await getSignedUrl(s3, getObjectCommand, {
-  expiresIn: 604800, // 7 days
-});
+const appUrl = `${window.location.origin}/videos/${data.id}`;
+setShareableUrl(appUrl);
 ```
+
+The video page then fetches the S3 pre-signed URL internally for playback.
+
+---
+
+### **7. Lazy Initialization for S3 Client**
+
+**Module-level singleton pattern:**
+```typescript
+let s3Instance: S3Client | null = null;
+
+export function getS3Client(): S3Client {
+  if (!s3Instance) {
+    s3Instance = new S3Client({...});
+  }
+  return s3Instance;
+}
+```
+
+**Benefits:**
+- ✅ S3 client created only once
+- ✅ Reused across all requests
+- ✅ Memory efficient
+- ✅ Serverless-friendly (persists across warm starts)
 
 ---
 
@@ -302,7 +347,8 @@ graph LR
     C --> D[Blob Chunks]
     D --> E[Save to IndexedDB]
     E --> F[Display Preview]
-    F --> G[Download/Trim/Upload]
+    F --> G[Upload to S3]
+    G --> H[Cleanup IndexedDB]
 ```
 
 1. User clicks "Start Recording"
@@ -310,6 +356,7 @@ graph LR
 3. `MediaRecorder` captures combined stream
 4. On stop, blob is saved to **IndexedDB**
 5. Video persists across page refreshes
+6. After successful upload, **IndexedDB is automatically cleaned**
 
 ---
 
@@ -340,8 +387,10 @@ graph LR
     B --> C[Upload to S3]
     C --> D[Generate Pre-Signed URL]
     D --> E[Save Metadata to videos.json]
-    E --> F[Return Shareable Link]
-    F --> G[Copy to Clipboard]
+    E --> F[Return Video ID]
+    F --> G[Create App URL]
+    G --> H[Cleanup IndexedDB]
+    H --> I[Copy to Clipboard]
 ```
 
 1. User clicks "Save and Share"
@@ -349,27 +398,63 @@ graph LR
 3. Server uploads to S3 with unique ID
 4. Generate 7-day pre-signed URL
 5. Save metadata (`videos.json`)
-6. Return shareable link to user
+6. Return video ID to client
+7. Client creates shareable app URL (`/videos/{id}`)
+8. **Cleanup IndexedDB automatically**
+9. Display shareable link with copy button
 
 ---
 
 ### **Analytics Tracking**
 
 **View Tracking:**
-- Triggered on video page load (external links only)
-- Skips tracking for internal navigation (`?internal=true`)
+- Triggered on video page load
 - Uses `sessionStorage` to prevent double-counting
+- Increments view count in `analytics.json`
 
 **Watch Completion:**
-- Tracks `currentTime` vs `duration`
+- Tracks `currentTime` vs `duration` in real-time
 - Records completion percentage per session
 - Updates every 5 seconds during playback
+- Stores array of completion percentages
 - Calculates average across all sessions
 
 **Data Flow:**
 ```
 Video Page → POST /api/analytics → analyticsStore.ts → analytics.json
 ```
+
+---
+
+## 🆕 Recent Improvements
+
+### **1. IndexedDB Cleanup**
+- ✅ Automatic cleanup after successful upload
+- ✅ Prevents storage quota errors
+- ✅ Console logs for debugging
+- ✅ Graceful error handling
+
+### **2. Shareable URL Fix**
+- ✅ Changed from S3 pre-signed URLs to application URLs
+- ✅ Consistent across recording and trim pages
+- ✅ Better user experience with clean URLs
+
+### **3. Completion Tracking Fix**
+- ✅ Removed internal view detection blocking
+- ✅ Fixed watch sessions display (number vs array)
+- ✅ Added proper event listeners for play/pause/ended
+- ✅ Real-time completion percentage updates
+
+### **4. Code Cleanup**
+- ✅ Removed all debug console logs
+- ✅ Simplified error handling
+- ✅ Removed unnecessary verbose logging
+- ✅ Production-ready code quality
+
+### **5. Dark Mode Improvements**
+- ✅ Fixed URL input visibility in dark mode
+- ✅ Proper contrast for all text elements
+- ✅ Consistent theming across all pages
 
 ---
 
@@ -436,7 +521,7 @@ Video Page → POST /api/analytics → analyticsStore.ts → analytics.json
 | **Trim video** | ✅ | ffmpeg.wasm with start/end times |
 | **Export trimmed video** | ✅ | Download + upload options |
 | **Upload to storage** | ✅ | AWS S3 with pre-signed URLs |
-| **Generate share link** | ✅ | Public video page `/videos/[id]` |
+| **Generate share link** | ✅ | Application URLs `/videos/[id]` |
 | **Public video player** | ✅ | Embedded player with controls |
 | **Track view count** | ✅ | Analytics API + file storage |
 | **Track watch completion** | ✅ | Real-time tracking with averages |
@@ -453,15 +538,16 @@ Video Page → POST /api/analytics → analyticsStore.ts → analytics.json
 - ✅ Modern Next.js 16 with App Router
 - ✅ Type-safe TypeScript throughout
 - ✅ Client-side video processing (no server costs)
-- ✅ Persistent storage with IndexedDB
-- ✅ Secure S3 integration with pre-signed URLs
+- ✅ Persistent storage with IndexedDB + automatic cleanup
+- ✅ Secure S3 integration with lazy initialization
+- ✅ Production-ready code (no debug logs)
 
 ### **Product Thinking**
 - ✅ Clear user flow: Record → Trim → Share
-- ✅ Analytics tracking without user accounts
-- ✅ Shareable links with expiration
-- ✅ Error handling and loading states
-- ✅ Dark mode support
+- ✅ Analytics tracking with completion percentages
+- ✅ Shareable application URLs
+- ✅ Comprehensive error handling
+- ✅ Dark mode support with proper contrast
 
 ### **Code Quality**
 - ✅ Modular architecture
@@ -469,6 +555,7 @@ Video Page → POST /api/analytics → analyticsStore.ts → analytics.json
 - ✅ Reusable components
 - ✅ Clean file structure
 - ✅ Comprehensive error handling
+- ✅ Memory management (IndexedDB cleanup)
 
 ---
 
